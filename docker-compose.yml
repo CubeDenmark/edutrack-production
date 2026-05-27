@@ -11,6 +11,8 @@ services:
     depends_on:
       - mysql
     volumes:
+      # This app-code volume is used to share the application code between the app and nginx services without linking it to the host machine, which is
+      # suitable for production environments but no mounting is more professional and secure for production environments.
       - app-code:/var/www
     networks:
       - app-network
@@ -20,6 +22,8 @@ services:
     ports:
       - "80:80"
     volumes:
+      # This app-code volume is used to share the application code between the app and nginx services without linking it to the host machine, which is
+      # suitable for production environments but no mounting is more professional and secure for production environments.
       - app-code:/var/www
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
