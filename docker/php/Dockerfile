@@ -1,58 +1,54 @@
-# ---------- FRONTEND BUILD STAGE ----------
+# ---------- FRONTEND BUILD ----------
 FROM node:20 AS frontend
 
 WORKDIR /app
 
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
 COPY package*.json ./
 
-RUN npm ci --no-audit --no-fund --fetch-retries=5 --network-timeout=100000
+RUN npm ci
 
 COPY . .
 
-RUN npm run build
+RUN rm -rf public/build && npm run build
 
-# ---------- PHP/LARAVEL STAGE ----------
-FROM php:8.4-fpm
 
-# Install system dependencies
+# ---------- PHP APP ----------
+FROM php:8.4-fpm AS app
+
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
-    curl \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
+    git unzip zip curl \
+    libzip-dev libpng-dev libjpeg-dev \
+    libfreetype6-dev libonig-dev libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-        pdo \
-        pdo_mysql \
-        zip \
-        gd
+    && docker-php-ext-install pdo pdo_mysql zip gd
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy Laravel app
 COPY . .
 
-# Copy built frontend assets
-COPY --from=frontend /app/public/build ./public/build
+COPY --from=frontend /app/public/build /var/www/public/build
 
-# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 9000
 
 CMD ["php-fpm"]
+
+
+# ---------- NGINX ----------
+FROM nginx:alpine AS nginx
+
+WORKDIR /var/www
+
+# copy Laravel public folder
+COPY public ./public
+
+# copy vite build assets
+COPY --from=frontend /app/public/build /var/www/public/build
+
+# nginx config
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
