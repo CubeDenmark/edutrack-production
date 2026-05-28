@@ -2,39 +2,44 @@ services:
 
   app:
     build:
-      context: .
-      target: app
-    restart: unless-stopped
+        context: .
+        dockerfile: docker/php/Dockerfile
+        target: app
     env_file:
       - .env.production
+    expose:
+      - "9000"
+    depends_on:
+      - mysql
     networks:
-      - laravel
+      - app-network
 
   nginx:
     build:
       context: .
+      dockerfile: docker/php/Dockerfile
       target: nginx
-    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
       - app
     networks:
-      - laravel
+      - app-network
 
   mysql:
     image: mysql:8.0
-    restart: unless-stopped
     environment:
-      MYSQL_DATABASE: laravel
+      MYSQL_DATABASE: edutrack
       MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - laravel
+      - app-network
 
 networks:
-  laravel:
+  app-network:
 
 volumes:
   mysql_data:
