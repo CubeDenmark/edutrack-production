@@ -5,9 +5,14 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci
+# RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
-COPY . .
+# Copy only frontend-related files (NOT full repo first)
+COPY resources ./resources
+COPY vite.config.* ./
+COPY tailwind.config.* ./
+COPY tsconfig.json ./
 
 RUN rm -rf public/build && npm run build
 
@@ -30,7 +35,9 @@ COPY . .
 
 COPY --from=frontend /app/public/build /var/www/public/build
 
-RUN composer install --no-dev --optimize-autoloader
+# RUN composer install --no-dev --optimize-autoloader
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    composer install --no-dev --optimize-autoloader
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 
