@@ -1,4 +1,11 @@
+[build]
+builder = "railpack"
+
+[variables]
+PHP_EXTENSIONS = "gd zip"
+
 [phases.build]
+nixPkgs = ["php82", "php82Extensions.gd"]
 cmds = [
   "composer install --no-dev --optimize-autoloader",
   "php artisan config:cache",
